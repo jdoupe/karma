@@ -188,12 +188,25 @@ describe("<AlertManagerInput />", () => {
     expect(container.querySelector(".react-select--is-disabled")).toBeNull();
   });
 
-  it("is disabled when silenceFormStore.data.silenceID is not null", () => {
+  it("is disabled when silenceFormStore.data.silenceID is not null and only one alertmanager", () => {
     silenceFormStore.data.setSilenceID("1234");
+    silenceFormStore.data.setAlertmanagers([{ label: "Cluster: HA", value: ["am1", "am2"] }]);
     const { container } = renderAlertManagerInput();
     expect(
       container.querySelector(".react-select--is-disabled"),
     ).toBeInTheDocument();
+  });
+
+  it("is enabled when silenceFormStore.data.silenceID is not null and multiple alertmanagers", () => {
+    silenceFormStore.data.setSilenceID("1234");
+    silenceFormStore.data.setAlertmanagers([
+      { label: "HA", value: ["am1", "am2"] },
+      { label: "am3", value: ["am3"] },
+    ]);
+    const { container } = renderAlertManagerInput();
+    expect(
+      container.querySelector(".react-select--is-disabled"),
+    ).toBeNull();
   });
 
   it("removing last options sets silenceFormStore.data.alertmanagers to []", () => {

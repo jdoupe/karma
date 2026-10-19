@@ -5,15 +5,43 @@ import (
 	"log/slog"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/prymitive/karma/internal/alertmanager"
 )
 
 const (
 	maxTries = 2
+	// minimum time between pulls requested via the API
+	minManualPullInterval = 5 * time.Second
 )
 
+var (
+	// serializes pulls so that API triggered ones never overlap with the timer
+	pullMutex sync.Mutex
+	lastPull  time.Time
+)
+
+// pullFromAlertmanagerThrottled runs a pull unless one finished recently.
+// Returns true if a pull was executed.
+func pullFromAlertmanagerThrottled() bool {
+	pullMutex.Lock()
+	defer pullMutex.Unlock()
+	if time.Since(lastPull) < minManualPullInterval {
+		return false
+	}
+	pullFromAlertmanagerLocked()
+	return true
+}
+
 func pullFromAlertmanager() {
+	pullMutex.Lock()
+	defer pullMutex.Unlock()
+	pullFromAlertmanagerLocked()
+}
+
+func pullFromAlertmanagerLocked() {
+	defer func() { lastPull = time.Now() }()
 	// always flush cache once we're done
 	defer apiCache.Purge()
 

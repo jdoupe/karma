@@ -85,7 +85,7 @@ const AlertManagerInput: FC<{
       onChange={(newValue: OnChangeValue<MultiValueOptionT, true>) => {
         silenceFormStore.data.setAlertmanagers(newValue as MultiValueOptionT[]);
       }}
-      isDisabled={silenceFormStore.data.silenceID !== null}
+      isDisabled={silenceFormStore.data.silenceID !== null && silenceFormStore.data.alertmanagers.length <= 1}
       components={{ Menu: AnimatedMultiMenu }}
     />
   );

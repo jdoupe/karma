@@ -64,6 +64,17 @@ func pong(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("Pong\n"))
 }
 
+// pull forces karma to refresh alerts and silences from all Alertmanager
+// upstreams instead of waiting for the next scheduled pull
+func pull(w http.ResponseWriter, _ *http.Request) {
+	noCache(w)
+	pulled := pullFromAlertmanagerThrottled()
+	data, _ := marshalJSON(map[string]bool{"pulled": pulled})
+	mimeJSON(w)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}
+
 func robots(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("User-agent: *\nDisallow: /\n"))
 }

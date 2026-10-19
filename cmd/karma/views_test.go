@@ -84,6 +84,37 @@ func TestHealth(t *testing.T) {
 	}
 }
 
+func TestPull(t *testing.T) {
+	mockConfig(t.Setenv)
+	mockCache()
+	r := testRouter()
+	setupRouter(r, nil)
+
+	for _, tc := range []struct {
+		lastPull time.Time
+		body     string
+		purged   bool
+	}{
+		{time.Now(), `{"pulled":false}`, false},
+		{time.Time{}, `{"pulled":true}`, true},
+	} {
+		lastPull = tc.lastPull
+		_ = apiCache.Add("key", []byte("cached"))
+		req := httptest.NewRequest("POST", "/pull", nil)
+		resp := httptest.NewRecorder()
+		r.ServeHTTP(resp, req)
+		if resp.Code != http.StatusOK {
+			t.Errorf("POST /pull returned status %d", resp.Code)
+		}
+		if strings.TrimSpace(resp.Body.String()) != tc.body {
+			t.Errorf("POST /pull returned %q, expected %q", resp.Body.String(), tc.body)
+		}
+		if _, found := apiCache.Get("key"); found == tc.purged {
+			t.Errorf("cache purged=%v, expected %v", !found, tc.purged)
+		}
+	}
+}
+
 func TestRobots(t *testing.T) {
 	mockConfig(t.Setenv)
 	r := testRouter()

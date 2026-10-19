@@ -1,6 +1,7 @@
 import type { FC } from "react";
 
 import { action } from "mobx";
+import { observer } from "mobx-react-lite";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons/faTrash";
@@ -30,7 +31,8 @@ const SilenceMatch: FC<{
   showDelete: boolean;
   onDelete: () => void;
   isValid: boolean;
-}> = ({ silenceFormStore, matcher, showDelete, onDelete, isValid }) => {
+}> = observer(
+  ({ silenceFormStore, matcher, showDelete, onDelete, isValid }) => {
   return (
     <div className="d-flex flex-fill flex-lg-row align-items-center flex-column mb-3">
       <div
@@ -108,6 +110,6 @@ const SilenceMatch: FC<{
       </div>
     </div>
   );
-};
+});
 
 export default SilenceMatch;

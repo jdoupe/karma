@@ -53,6 +53,7 @@ const SilenceDetails: FC<{
   cluster: string;
   onEditSilence: () => void;
   isUpper?: boolean;
+  isReadOnly?: boolean;
 }> = observer(
   ({
     alertStore,
@@ -61,6 +62,7 @@ const SilenceDetails: FC<{
     cluster,
     onEditSilence,
     isUpper = false,
+    isReadOnly: overrideIsReadOnly,
   }) => {
     const isExpired = parseISO(silence.endsAt) < new Date();
     let expiresClass = "";
@@ -75,8 +77,10 @@ const SilenceDetails: FC<{
     );
 
     const isReadOnly =
-      alertStore.data.getClusterAlertmanagersWithoutReadOnly(cluster).length ===
-      0;
+      overrideIsReadOnly !== undefined
+        ? overrideIsReadOnly
+        : alertStore.data.getClusterAlertmanagersWithoutReadOnly(cluster).length ===
+          0;
 
     return (
       <div className="mt-1">

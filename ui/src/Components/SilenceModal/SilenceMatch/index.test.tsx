@@ -1,5 +1,7 @@
 import { render, fireEvent } from "@testing-library/react";
 
+import { makeAutoObservable } from "mobx";
+
 import {
   SilenceFormStore,
   NewEmptyMatcher,
@@ -14,6 +16,7 @@ let matcher: MatcherWithIDT;
 beforeEach(() => {
   silenceFormStore = new SilenceFormStore();
   matcher = NewEmptyMatcher();
+  makeAutoObservable(matcher, {}, { autoBind: true, name: "Matcher" });
 });
 
 const MockOnDelete = jest.fn();

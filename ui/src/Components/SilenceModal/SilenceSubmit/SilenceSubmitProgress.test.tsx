@@ -523,4 +523,232 @@ describe("<SilenceSubmitProgress />", () => {
       error: "error message",
     });
   });
+
+  it("uses cluster-specific silence ID from silenceIDsByCluster when editing grouped silence", async () => {
+    // Set up multi-cluster scenario
+    const multiClusterUpstreams: APIAlertsResponseUpstreamsT = {
+      counters: { total: 2, healthy: 2, failed: 0 },
+      clusters: {
+        haCluster: ["am1", "am2"],
+        singleCluster: ["am3"],
+      },
+      instances: [
+        {
+          name: "am1",
+          uri: "http://am1:9093",
+          publicURI: "http://am1.example.com",
+          readonly: false,
+          headers: {},
+          corsCredentials: "include",
+          error: "",
+          version: "0.24.0",
+          cluster: "haCluster",
+          clusterMembers: ["am1", "am2"],
+        },
+        {
+          name: "am2",
+          uri: "http://am2:9093",
+          publicURI: "http://am2.example.com",
+          readonly: false,
+          headers: {},
+          corsCredentials: "include",
+          error: "",
+          version: "0.24.0",
+          cluster: "haCluster",
+          clusterMembers: ["am1", "am2"],
+        },
+        {
+          name: "am3",
+          uri: "http://am3:9093",
+          publicURI: "http://am3.example.com",
+          readonly: false,
+          headers: {},
+          corsCredentials: "include",
+          error: "",
+          version: "0.24.0",
+          cluster: "singleCluster",
+          clusterMembers: ["am3"],
+        },
+      ],
+    };
+
+    alertStore.data.setUpstreams(multiClusterUpstreams);
+
+    // Simulate the onEditSilence flow from GroupedSilence
+    // This is what gets called when user clicks "Edit" on a grouped silence
+    const silenceIDsByCluster: { [key: string]: string | null } = {};
+    const allClusters: { [key: string]: string[] } = {};
+    
+    // Simulate silences from different clusters with different IDs
+    const groupedSilences = [
+      { cluster: "haCluster", silence: { id: "silence-id-ha" } },
+      { cluster: "singleCluster", silence: { id: "silence-id-single" } },
+    ];
+    
+    for (const s of groupedSilences) {
+      const clusterAlertmanagers =
+        alertStore.data.getClusterAlertmanagersWithoutReadOnly(s.cluster);
+      if (clusterAlertmanagers.length > 0) {
+        allClusters[s.cluster] = clusterAlertmanagers;
+        silenceIDsByCluster[s.cluster] = s.silence.id;
+      }
+    }
+
+    silenceFormStore.data.setSilenceIDsByCluster(silenceIDsByCluster);
+    silenceFormStore.data.setAlertmanagers(
+      Object.entries(allClusters).map(([clusterID, clusterMembers]) => ({
+        label:
+          clusterMembers.length > 1
+            ? `Cluster: ${clusterID}`
+            : clusterMembers[0],
+        value: clusterMembers,
+      })),
+    );
+
+    // Now simulate the submission flow
+    // requestsByCluster is created in SilenceForm.handleSubmit
+    const rbc: { [label: string]: any } = {};
+    silenceFormStore.data.alertmanagers.forEach((am) => {
+      rbc[am.label] = {
+        cluster: am.label,
+        members: am.value,
+        isDone: false,
+        silenceID: undefined,
+        silenceLink: undefined,
+        error: null,
+      };
+    });
+    silenceFormStore.data.setRequestsByCluster(rbc);
+
+    fetchMock.mockReset();
+    fetchMock.route("http://am1:9093/api/v2/silences", {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ silenceID: "updated-silence-ha" }),
+    });
+    fetchMock.route("http://am3:9093/api/v2/silences", {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ silenceID: "updated-silence-single" }),
+    });
+
+    // Render submissions for both clusters
+    render(
+      <SilenceSubmitProgress
+        cluster="Cluster: haCluster"
+        members={["am1", "am2"]}
+        payload={{
+          matchers: [],
+          startsAt: "now",
+          endsAt: "later",
+          createdBy: "me@example.com",
+          comment: "test",
+        }}
+        alertStore={alertStore}
+        silenceFormStore={silenceFormStore}
+      />,
+    );
+    render(
+      <SilenceSubmitProgress
+        cluster="am3"
+        members={["am3"]}
+        payload={{
+          matchers: [],
+          startsAt: "now",
+          endsAt: "later",
+          createdBy: "me@example.com",
+          comment: "test",
+        }}
+        alertStore={alertStore}
+        silenceFormStore={silenceFormStore}
+      />,
+    );
+
+    await act(async () => {
+      await fetchMock.callHistory.flush(true);
+    });
+
+    // Verify that each cluster received the correct silence ID
+    const calls = fetchMock.callHistory.calls();
+    expect(calls).toHaveLength(2);
+
+    const haCall = calls.find((c) => c?.url?.includes("am1:9093"));
+    const singleCall = calls.find((c) => c?.url?.includes("am3:9093"));
+
+    expect(haCall).toBeDefined();
+    expect(singleCall).toBeDefined();
+
+    // Check that the correct silence IDs were sent
+    const haBody = JSON.parse(haCall?.options?.body as string);
+    const singleBody = JSON.parse(singleCall?.options?.body as string);
+
+    expect(haBody.id).toBe("silence-id-ha");
+    expect(singleBody.id).toBe("silence-id-single");
+  });
+
+  it("creates a new silence on a cluster added while editing a grouped silence", async () => {
+    alertStore.data.setUpstreams({
+      counters: { total: 2, healthy: 2, failed: 0 },
+      clusters: { am1: ["am1"], am3: ["am3"] },
+      instances: ["am1", "am3"].map((name) => ({
+        name,
+        uri: `http://${name}:9093`,
+        publicURI: `http://${name}.example.com`,
+        readonly: false,
+        headers: {},
+        corsCredentials: "include" as const,
+        error: "",
+        version: "0.24.0",
+        cluster: name,
+        clusterMembers: [name],
+      })),
+    });
+    silenceFormStore.data.setSilenceIDsByCluster({ am1: "silence-id-1" });
+
+    fetchMock.mockReset();
+    for (const name of ["am1", "am3"]) {
+      fetchMock.route(`http://${name}:9093/api/v2/silences`, {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ silenceID: `result-${name}` }),
+      });
+    }
+
+    // payload carries the primary silence ID, like toAlertmanagerPayload does
+    const payload = {
+      id: "silence-id-1",
+      matchers: [],
+      startsAt: "now",
+      endsAt: "later",
+      createdBy: "me@example.com",
+      comment: "test",
+    };
+    render(
+      <SilenceSubmitProgress
+        cluster="am1"
+        members={["am1"]}
+        payload={payload}
+        alertStore={alertStore}
+        silenceFormStore={silenceFormStore}
+      />,
+    );
+    render(
+      <SilenceSubmitProgress
+        cluster="am3"
+        members={["am3"]}
+        payload={payload}
+        alertStore={alertStore}
+        silenceFormStore={silenceFormStore}
+      />,
+    );
+
+    await act(async () => {
+      await fetchMock.callHistory.flush(true);
+    });
+
+    const calls = fetchMock.callHistory.calls();
+    const existing = calls.find((c) => c?.url?.includes("am1:9093"));
+    const added = calls.find((c) => c?.url?.includes("am3:9093"));
+    expect(JSON.parse(existing?.options?.body as string).id).toBe(
+      "silence-id-1",
+    );
+    expect(JSON.parse(added?.options?.body as string).id).toBeUndefined();
+  });
 });

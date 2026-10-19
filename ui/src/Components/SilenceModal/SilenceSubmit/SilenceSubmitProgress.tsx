@@ -24,7 +24,32 @@ const SilenceSubmitProgress: FC<{
     useFetchAny<PostResponseT>(upstreams);
   const [publicURIs, setPublicURIs] = useState<{ [key: string]: string }>({});
 
+  // Find cluster name from the cluster label (e.g., "Cluster: am1" -> "am1", "am3" -> find in clusters)
+  const findClusterNameForLabel = (
+    clusterLabel: string,
+    clusters: { readonly [key: string]: readonly string[] },
+  ): string | null => {
+    if (clusterLabel.startsWith("Cluster: ")) {
+      return clusterLabel.slice(9);
+    }
+    for (const [clusterName, members] of Object.entries(clusters)) {
+      if (members.includes(clusterLabel)) {
+        return clusterName;
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
+    // Access clusters directly to avoid MobX warning about computed value read outside reactive context
+    const clusters = alertStore.data.upstreams.clusters;
+    const clusterName = findClusterNameForLabel(cluster, clusters);
+
+    // Use the pre-computed clusterIDByLabel mapping if available (more reliable)
+    // Fallback to finding cluster name from label using clusters object
+    const lookupKey =
+      silenceFormStore.data.clusterIDByLabel[cluster] || clusterName || cluster;
+
     const uris: { [uri: string]: string } = {};
     const membersToTry = [];
     for (const member of members) {
@@ -36,11 +61,28 @@ const SilenceSubmitProgress: FC<{
           console.error(`Alertmanager instance "${member}" not found`);
         } else {
           const uri = `${am.uri}/api/v2/silences`;
+          const clusterPayload: AlertmanagerSilencePayloadT = {
+            ...payload,
+          };
+          const silenceIDsByCluster = silenceFormStore.data.silenceIDsByCluster;
+          if (Object.keys(silenceIDsByCluster).length > 0) {
+            // editing a grouped silence: each cluster has its own silence ID,
+            // clusters that were added to the form have none so a new silence
+            // must be created there instead of updating the primary one
+            const originalSilenceID = lookupKey
+              ? silenceIDsByCluster[lookupKey]
+              : null;
+            if (originalSilenceID) {
+              clusterPayload.id = originalSilenceID;
+            } else {
+              delete clusterPayload.id;
+            }
+          }
           membersToTry.push({
             uri: uri,
             options: {
               method: "POST",
-              body: JSON.stringify(payload),
+              body: JSON.stringify(clusterPayload),
               credentials: am.corsCredentials,
               headers: {
                 "Content-Type": "application/json",
@@ -56,7 +98,7 @@ const SilenceSubmitProgress: FC<{
       setPublicURIs(uris);
       setUpstreams(membersToTry);
     }
-  }, [alertStore.data, members, payload]);
+  }, [alertStore.data, cluster, payload, members, silenceFormStore.data]);
 
   useEffect(() => {
     if (!inProgress && error !== null) {

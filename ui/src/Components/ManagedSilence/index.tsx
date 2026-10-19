@@ -41,6 +41,9 @@ const ManagedSilence: FC<{
   isOpen?: boolean;
   onDidUpdate?: () => void;
   isNested?: boolean;
+  isGrouped?: boolean;
+  onEditSilence?: () => void;
+  isReadOnly?: boolean;
 }> = ({
   cluster,
   alertCount,
@@ -51,6 +54,9 @@ const ManagedSilence: FC<{
   isOpen = false,
   onDidUpdate,
   isNested = false,
+  isGrouped = false,
+  onEditSilence: customOnEditSilence,
+  isReadOnly: customIsReadOnly,
 }) => {
   useEffect(() => {
     if (onDidUpdate) onDidUpdate();
@@ -58,7 +64,7 @@ const ManagedSilence: FC<{
 
   const [showDetails, setShowDetails] = useState<boolean>(isOpen);
 
-  const onEditSilence = action(() => {
+  const defaultOnEditSilence = action(() => {
     const alertmanager = GetAlertmanager(alertStore, cluster);
 
     silenceFormStore.data.fillFormFromSilence(alertmanager, silence);
@@ -66,6 +72,10 @@ const ManagedSilence: FC<{
     silenceFormStore.tab.setTab("editor");
     silenceFormStore.toggle.show();
   });
+
+  const handleEditSilence = customOnEditSilence || defaultOnEditSilence;
+
+  const isReadOnly = customIsReadOnly !== undefined ? customIsReadOnly : alertStore.data.getClusterAlertmanagersWithoutReadOnly(cluster).length === 0;
 
   const [progress, setProgress] = useState<number>(() =>
     calculatePercent(silence.startsAt, silence.endsAt),
@@ -98,8 +108,9 @@ const ManagedSilence: FC<{
             silence={silence}
             alertStore={alertStore}
             silenceFormStore={silenceFormStore}
-            onEditSilence={onEditSilence}
+            onEditSilence={handleEditSilence}
             isUpper={isNested}
+            isReadOnly={isReadOnly}
           />
         </div>
       ) : null}
