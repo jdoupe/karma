@@ -164,6 +164,7 @@ ui:
   collapseGroups: collapsedOnMobile
   multiGridLabel: ""
   multiGridSortReverse: false
+  layout: grid
 `
 
 	var buf bytes.Buffer

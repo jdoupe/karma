@@ -25,6 +25,7 @@ import { ManagedSilence } from "Components/ManagedSilence";
 import { TooltipWrapper } from "Components/TooltipWrapper";
 import { DropdownSlide } from "Components/Animations/DropdownSlide";
 import { Modal } from "Components/Modal";
+import { refreshBackend } from "Components/RefreshButton";
 
 export interface ClusterSilenceT {
   cluster: string;
@@ -254,6 +255,15 @@ const MassDeleteProgress: FC<{
     });
     return () => timers.forEach((t) => clearTimeout(t));
   }, []);
+
+  // every delete has finished (or failed), pull the new state right away
+  const finished =
+    silences.length > 0 && done + errors.length >= silences.length;
+  useEffect(() => {
+    if (finished) {
+      refreshBackend(alertStore).catch(() => undefined);
+    }
+  }, [finished, alertStore]);
 
   return (
     <>

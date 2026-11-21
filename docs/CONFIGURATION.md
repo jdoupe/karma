@@ -1315,6 +1315,7 @@ ui:
   collapseGroups: string
   multiGridLabel: string
   multiGridSortReverse: bool
+  layout: string
 ```
 
 - `refresh` - default refresh interval, this tells the UI how often karma API
@@ -1356,6 +1357,11 @@ ui:
   - `@receiver` - one grid per alertmanager receiver
 - `multiGridSortReverse` - when multi-grid is enabled set to `true` the order
   in which grids are displayed.
+- `layout` - how alerts are rendered, possible values:
+  - `table` - one line per alert, click a row to expand it
+  - `grid` - alerts grouped into cards, laid out on a grid
+
+  Users can override this in the configuration modal. Default value is `grid`.
 
 Defaults:
 
@@ -1371,6 +1377,7 @@ ui:
   collapseGroups: collapsedOnMobile
   multiGridLabel: ""
   multiGridSortReverse: false
+  layout: grid
 ```
 
 ## Customizing karma

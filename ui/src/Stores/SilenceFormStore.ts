@@ -332,6 +332,8 @@ class SilenceFormStoreData {
   requestsByCluster: { [key: string]: ClusterRequestT } = {};
   autofillMatchers = true;
   resetInputs = true;
+  silenceIDsByCluster: { [cluster: string]: string | null } = {};
+  clusterIDByLabel: { [label: string]: string } = {};
 
   constructor() {
     makeAutoObservable(
@@ -423,6 +425,11 @@ class SilenceFormStoreData {
     this.wasValidated = false;
   }
 
+  resetClusterSilences() {
+    this.silenceIDsByCluster = {};
+    this.clusterIDByLabel = {};
+  }
+
   resetSilenceID() {
     this.silenceID = null;
   }
@@ -482,6 +489,7 @@ class SilenceFormStoreData {
     // ensure that silenceID is nulled, since it's used to edit silences
     // and this is used to silence groups
     this.silenceID = null;
+    this.resetClusterSilences();
     // disable matcher autofill
     this.autofillMatchers = false;
     // disable alertmanager input reset
@@ -493,6 +501,7 @@ class SilenceFormStoreData {
     silence: ReadOnly<AlertmanagerSilencePayloadT>,
   ) {
     this.silenceID = silence.id;
+    this.silenceIDsByCluster = {};
 
     this.alertmanagers = AlertmanagerClustersToOption({
       [alertmanager.cluster]: alertmanager.clusterMembers,
@@ -579,6 +588,14 @@ class SilenceFormStoreData {
       ...this.requestsByCluster[key],
       ...v,
     };
+  }
+
+  setSilenceIDsByCluster(val: { [cluster: string]: string | null }) {
+    this.silenceIDsByCluster = val;
+  }
+
+  setClusterIDByLabel(val: { [label: string]: string }) {
+    this.clusterIDByLabel = val;
   }
 
   get toAlertmanagerPayload() {

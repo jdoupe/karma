@@ -250,5 +250,6 @@ level=INFO msg="  alertsPerGroup: 2"
 level=INFO msg="  collapseGroups: expanded"
 level=INFO msg="  multiGridLabel: cluster"
 level=INFO msg="  multiGridSortReverse: true"
+level=INFO msg="  layout: grid"
 level=INFO msg="Configured Alertmanager source" name=ro cluster=ro uri=http://127.0.0.1:9093 proxy=false readonly=true
 level=INFO msg="Configuration is valid"

@@ -136,6 +136,7 @@ level=INFO msg="  alertsPerGroup: 5"
 level=INFO msg="  collapseGroups: collapsedOnMobile"
 level=INFO msg="  multiGridLabel: \"\""
 level=INFO msg="  multiGridSortReverse: false"
+level=INFO msg="  layout: grid"
 level=INFO msg="Configured Alertmanager source" name=socks5_proxy cluster=socks5_proxy uri=http://127.0.0.1 proxy=false readonly=false
 level=INFO msg="Configuration is valid"
 -- karma.yaml --

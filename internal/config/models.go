@@ -233,6 +233,7 @@ type UIConfig struct {
 	CollapseGroups       string        `yaml:"collapseGroups" koanf:"collapseGroups"`
 	MultiGridLabel       string        `yaml:"multiGridLabel" koanf:"multiGridLabel"`
 	MultiGridSortReverse bool          `yaml:"multiGridSortReverse" koanf:"multiGridSortReverse"`
+	Layout               string        `yaml:"layout" koanf:"layout"`
 }
 
 func (ui UIConfig) MarshalJSON() ([]byte, error) {

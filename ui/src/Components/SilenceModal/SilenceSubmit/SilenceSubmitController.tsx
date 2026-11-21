@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import { FC, useEffect } from "react";
 
 import { observer } from "mobx-react-lite";
 
@@ -7,6 +7,7 @@ import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 
 import type { AlertStore } from "Stores/AlertStore";
 import type { SilenceFormStore } from "Stores/SilenceFormStore";
+import { refreshBackend } from "Components/RefreshButton";
 import SingleClusterStatus from "./SingleClusterStatus";
 import MultiClusterStatus from "./MultiClusterStatus";
 
@@ -14,6 +15,19 @@ const SilenceSubmitController: FC<{
   alertStore: AlertStore;
   silenceFormStore: SilenceFormStore;
 }> = ({ silenceFormStore, alertStore }) => {
+  const requests = Object.values(silenceFormStore.data.requestsByCluster);
+  const allDone = requests.length > 0 && requests.every((r) => r.isDone);
+
+  // once every cluster has answered (successfully or not) pull the new state
+  // from Alertmanager right away instead of waiting for the next interval
+  useEffect(() => {
+    if (allDone) {
+      refreshBackend(alertStore).catch(() => {
+        // the regular update interval will still pick the change up
+      });
+    }
+  }, [allDone, alertStore]);
+
   return (
     <>
       {Object.keys(silenceFormStore.data.requestsByCluster).length === 1 ? (

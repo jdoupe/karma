@@ -126,6 +126,24 @@ describe("SilenceFormStore.data", () => {
     expect(store.data.wasValidated).toBe(false);
   });
 
+  it("resetProgress() keeps per-cluster silence IDs used when editing grouped silences", () => {
+    const store = new SilenceFormStore();
+    store.data.setSilenceIDsByCluster({ am1: "id1", am2: "id2" });
+    store.data.setClusterIDByLabel({ "Cluster: am1": "am1" });
+    store.data.resetProgress();
+    expect(store.data.silenceIDsByCluster).toEqual({ am1: "id1", am2: "id2" });
+    expect(store.data.clusterIDByLabel).toEqual({ "Cluster: am1": "am1" });
+  });
+
+  it("resetClusterSilences() clears per-cluster silence IDs", () => {
+    const store = new SilenceFormStore();
+    store.data.setSilenceIDsByCluster({ am1: "id1" });
+    store.data.setClusterIDByLabel({ "Cluster: am1": "am1" });
+    store.data.resetClusterSilences();
+    expect(store.data.silenceIDsByCluster).toEqual({});
+    expect(store.data.clusterIDByLabel).toEqual({});
+  });
+
   it("addEmptyMatcher() appends a matcher", () => {
     expect(store.data.matchers).toHaveLength(0);
     store.data.addEmptyMatcher();

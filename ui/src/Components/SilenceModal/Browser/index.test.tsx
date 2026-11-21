@@ -16,6 +16,13 @@ import { SilenceFormStore } from "Stores/SilenceFormStore";
 import { ThemeContext, ThemeCtx } from "Components/Theme";
 import Browser from ".";
 
+// deleting silences also asks the backend to refresh, keep that out of the
+// counts of requests sent to Alertmanager
+const refreshCalls = () =>
+  fetchMock.callHistory.calls().filter((c) => c.url.endsWith("/refresh"));
+const nonRefreshCalls = () =>
+  fetchMock.callHistory.calls().filter((c) => !c.url.endsWith("/refresh"));
+
 let alertStore: AlertStore;
 let silenceFormStore: SilenceFormStore;
 let settingsStore: Settings;
@@ -130,8 +137,9 @@ describe("<Browser />", () => {
       "./silences.json?sortReverse=0&showExpired=0&searchTerm=",
     );
 
-    const sortOrder = container.querySelectorAll("button.btn-secondary")[0];
-    expect(sortOrder.textContent).toBe("Sort order");
+    const sortOrder = container.querySelector(
+      'button[aria-label="Sort order"]',
+    )!;
     fireEvent.click(sortOrder);
 
     expect(useFetchGetMock.fetch.calls[1]).toBe(
@@ -290,6 +298,49 @@ describe("<Browser />", () => {
     ).toHaveLength(4);
   });
 
+  it("paginates groups of duplicates as single items", () => {
+    global.window.innerWidth = 1024;
+    const silences: APIManagedSilenceT[] = [];
+    // two groups of 6 duplicates (one per cluster) plus 1 unique silence
+    for (const comment of ["a", "b"]) {
+      for (let c = 1; c <= 6; c++) {
+        const s = MockSilence();
+        s.id = `${comment}${c}`;
+        s.matchers = [
+          { name: "alertname", value: comment, isRegex: false, isEqual: true },
+        ];
+        silences.push({
+          cluster: `cluster${c}`,
+          alertCount: 1,
+          silence: s,
+          isExpired: false,
+        });
+      }
+    }
+    silences.push(MockSilenceList(1)[0]);
+
+    useFetchGetMock.fetch.setMockedData({
+      response: silences,
+      error: null,
+      isLoading: false,
+      isRetrying: false,
+      retryCount: 0,
+      get: jest.fn(),
+      cancelGet: jest.fn(),
+    });
+    const { container } = renderBrowser();
+    fireEvent.click(container.querySelector("#silence-group-duplicates")!);
+
+    expect(container.textContent?.match(/6x duplicate/g)).toHaveLength(2);
+    expect(
+      container.querySelectorAll(".components-managed-silence"),
+    ).toHaveLength(3);
+    // everything fits on a single page
+    expect(
+      container.querySelector(".components-pagination")?.childElementCount,
+    ).toBe(0);
+  });
+
   it("renders last silence after page change", () => {
     useFetchGetMock.fetch.setMockedData({
       response: MockSilenceList(7),
@@ -442,7 +493,9 @@ describe("<Browser />", () => {
       get: jest.fn(),
       cancelGet: jest.fn(),
     });
-    fireEvent.click(container.querySelector("button.btn-secondary")!);
+    fireEvent.click(
+      container.querySelector('button[aria-label="Sort order"]')!,
+    );
 
     expect(
       container.querySelectorAll(".components-managed-silence"),
@@ -462,7 +515,9 @@ describe("<Browser />", () => {
       get: jest.fn(),
       cancelGet: jest.fn(),
     });
-    fireEvent.click(container.querySelector("button.btn-secondary")!);
+    fireEvent.click(
+      container.querySelector('button[aria-label="Sort order"]')!,
+    );
 
     expect(
       container.querySelectorAll(".components-managed-silence"),
@@ -553,8 +608,8 @@ describe("<SilenceDelete />", () => {
 
     // nothing is selected initially
     const checkboxes = container.querySelectorAll("input.form-check-input");
-    expect(checkboxes).toHaveLength(5);
-    for (const i of [1, 2, 3, 4]) {
+    expect(checkboxes).toHaveLength(6);
+    for (const i of [1, 2, 3, 4, 5]) {
       expect((checkboxes[i] as HTMLInputElement).checked).toBe(false);
     }
 
@@ -578,7 +633,8 @@ describe("<SilenceDelete />", () => {
       await fetchMock.callHistory.flush(true);
     });
 
-    expect(fetchMock.callHistory.calls()).toHaveLength(3);
+    expect(nonRefreshCalls()).toHaveLength(3);
+    expect(refreshCalls()).toHaveLength(1);
 
     const closeBtn = container.querySelector(".btn-close");
     if (closeBtn) fireEvent.click(closeBtn);
@@ -686,7 +742,7 @@ describe("<SilenceDelete />", () => {
       await fetchMock.callHistory.flush(true);
     });
 
-    expect(fetchMock.callHistory.calls()).toHaveLength(2);
+    expect(nonRefreshCalls()).toHaveLength(2);
 
     const closeBtn = container.querySelector(".btn-close");
     if (closeBtn) fireEvent.click(closeBtn);
@@ -875,7 +931,7 @@ describe("<SilenceDelete />", () => {
     const checkboxes = container.querySelectorAll(
       "input.form-check-input[type='checkbox']",
     );
-    for (const i of [1, 2, 3, 4]) {
+    for (const i of [2, 3, 4, 5]) {
       act(() => {
         fireEvent.click(checkboxes[i]);
       });
@@ -890,8 +946,9 @@ describe("<SilenceDelete />", () => {
       await fetchMock.callHistory.flush(true);
     });
 
-    expect(fetchMock.callHistory.calls()).toHaveLength(7);
-    const uris = fetchMock.callHistory.calls().map((c) => c?.url);
+    expect(nonRefreshCalls()).toHaveLength(7);
+    expect(refreshCalls()).toHaveLength(1);
+    const uris = nonRefreshCalls().map((c) => c?.url);
     expect(uris).toContainEqual("http://m1.example.com/api/v2/silence/1");
     expect(uris).toContainEqual("http://m1.example.com/api/v2/silence/2");
     expect(uris).toContainEqual("http://m4.example.com/api/v2/silence/3");
@@ -961,7 +1018,7 @@ describe("<SilenceDelete />", () => {
       "input.form-check-input[type='checkbox']",
     );
     act(() => {
-      fireEvent.click(checkboxes[1]);
+      fireEvent.click(checkboxes[2]);
     });
 
     const del = container.querySelector(".btn.btn-danger");
@@ -1020,15 +1077,15 @@ describe("<SilenceDelete />", () => {
 
     // Select first silence
     act(() => {
-      fireEvent.click(checkboxes[1]);
+      fireEvent.click(checkboxes[2]);
     });
-    expect((checkboxes[1] as HTMLInputElement).checked).toBe(true);
+    expect((checkboxes[2] as HTMLInputElement).checked).toBe(true);
 
     // Deselect first silence
     act(() => {
-      fireEvent.click(checkboxes[1]);
+      fireEvent.click(checkboxes[2]);
     });
-    expect((checkboxes[1] as HTMLInputElement).checked).toBe(false);
+    expect((checkboxes[2] as HTMLInputElement).checked).toBe(false);
 
     await act(() => promise);
   });
@@ -1081,8 +1138,8 @@ describe("<SilenceDelete />", () => {
     const checkboxes = container.querySelectorAll(
       "input.form-check-input[type='checkbox']",
     );
-    expect((checkboxes[1] as HTMLInputElement).checked).toBe(true);
     expect((checkboxes[2] as HTMLInputElement).checked).toBe(true);
+    expect((checkboxes[3] as HTMLInputElement).checked).toBe(true);
 
     // Now click 'Select none'
     fireEvent.click(dropdownToggles[dropdownToggles.length - 1]);
@@ -1093,8 +1150,8 @@ describe("<SilenceDelete />", () => {
     fireEvent.click(dropdownItems[dropdownItems.length - 1]);
 
     // Verify all are deselected
-    expect((checkboxes[1] as HTMLInputElement).checked).toBe(false);
     expect((checkboxes[2] as HTMLInputElement).checked).toBe(false);
+    expect((checkboxes[3] as HTMLInputElement).checked).toBe(false);
 
     await act(() => promise);
   });
@@ -1129,7 +1186,7 @@ describe("<SilenceDelete />", () => {
     const { container } = renderBrowser();
 
     const checkboxes = container.querySelectorAll("input.form-check-input");
-    fireEvent.click(checkboxes[1]);
+    fireEvent.click(checkboxes[2]);
 
     const deleteButtons = container.querySelectorAll("button.btn-danger");
     const trashBtn = deleteButtons[0];
@@ -1177,7 +1234,7 @@ describe("<SilenceDelete />", () => {
     const { container } = renderBrowser();
 
     const checkboxes = container.querySelectorAll("input.form-check-input");
-    fireEvent.click(checkboxes[1]);
+    fireEvent.click(checkboxes[2]);
 
     const dropdownToggles = container.querySelectorAll(".btn.dropdown-toggle");
     fireEvent.click(dropdownToggles[dropdownToggles.length - 1]);

@@ -1,4 +1,6 @@
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, act } from "@testing-library/react";
+
+import fetchMock from "@fetch-mock/jest";
 
 import { useFetchAny } from "Hooks/useFetchAny";
 import { AlertStore } from "Stores/AlertStore";
@@ -69,6 +71,40 @@ beforeEach(() => {
 });
 
 describe("<SilenceSubmitController />", () => {
+  it("triggers a backend refresh only after every cluster has responded", async () => {
+    fetchMock.mockReset();
+    fetchMock.route("*", { status: 200, body: "{}" });
+    silenceFormStore.data.setRequestsByCluster({
+      ha: NewClusterRequest("ha", ["am1", "am2"]),
+      single: NewClusterRequest("single", ["single"]),
+    });
+
+    render(
+      <SilenceSubmitController
+        alertStore={alertStore}
+        silenceFormStore={silenceFormStore}
+      />,
+    );
+    const refreshCalls = () =>
+      fetchMock.callHistory.calls().filter((c) => c.url.endsWith("/refresh"));
+    expect(refreshCalls()).toHaveLength(0);
+
+    await act(async () => {
+      silenceFormStore.data.setRequestsByClusterUpdate("ha", {
+        isDone: true,
+      });
+    });
+    expect(refreshCalls()).toHaveLength(0);
+
+    await act(async () => {
+      silenceFormStore.data.setRequestsByClusterUpdate("single", {
+        isDone: true,
+        error: "failed",
+      });
+    });
+    expect(refreshCalls()).toHaveLength(1);
+  });
+
   it("renders MultiClusterStatus when multiple clusters are used", () => {
     silenceFormStore.data.setRequestsByCluster({
       ha: NewClusterRequest("ha", ["am1", "am2"]),

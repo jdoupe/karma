@@ -79,6 +79,7 @@ Usage of karma:
       --ui.collapseGroups string                      Default state for alert groups (default "collapsedOnMobile")
       --ui.colorTitlebar[=true|false]                 Color alert group titlebar based on alert state
       --ui.hideFiltersWhenIdle[=true|false]           Hide the filters bar when idle (default true)
+      --ui.layout string                              Default alert layout, 'table' (one line per alert) or 'grid' (alert group cards) (default "grid")
       --ui.minimalGroupWidth int                      Minimal width for each alert group on the grid (default 420)
       --ui.refresh duration                           UI refresh interval (default 30s)
       --ui.theme string                               Default theme, 'light', 'dark' or 'auto' (follow browser preference) (default "auto")

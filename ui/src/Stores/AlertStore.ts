@@ -427,6 +427,8 @@ class AlertStoreStatus {
   error: null | string = null;
   stopped = false;
   paused = false;
+  // bumped to ask the Fetcher for an immediate update
+  refreshRequests = 0;
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true, name: "Store status" });
@@ -451,6 +453,10 @@ class AlertStoreStatus {
     this.value = AlertStoreStatuses.Failure;
     this.error = err;
     this.lastUpdateAt = new Date();
+  }
+
+  requestRefresh() {
+    this.refreshRequests++;
   }
 
   pause() {

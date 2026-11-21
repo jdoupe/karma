@@ -2,7 +2,7 @@ import { action } from "mobx";
 
 import { localStored } from "Common/LocalStore";
 
-import type { UIDefaults } from "Models/UI";
+import type { UIDefaults, LayoutT } from "Models/UI";
 import type { OptionT } from "Common/Select";
 
 interface SavedFiltersStorage {
@@ -255,6 +255,49 @@ class MultiGridConfig {
   }
 }
 
+interface LayoutConfigStorage {
+  // empty means "use the default from the backend config"
+  layout: LayoutT | "";
+}
+class LayoutConfig {
+  options: { [key: string]: OptionT };
+  config: LayoutConfigStorage;
+  defaultLayout: LayoutT;
+  setLayout: (v: LayoutT | "") => void;
+
+  constructor(defaultLayout: LayoutT) {
+    this.options = Object.freeze({
+      table: {
+        label: "Table, one line per alert",
+        value: "table",
+        wasCreated: false,
+      },
+      grid: {
+        label: "Grid, alert group cards",
+        value: "grid",
+        wasCreated: false,
+      },
+    });
+    this.defaultLayout = defaultLayout;
+
+    // only a choice made by the user is stored, so changing the default in
+    // the backend config still applies to everyone who didn't pick one
+    const store = localStored<LayoutConfigStorage>("layoutConfig", {
+      layout: "",
+    });
+    this.config = store.value;
+    this.setLayout = action((v: LayoutT | "") => {
+      this.config.layout = v;
+    });
+  }
+
+  get layout(): LayoutT {
+    return this.config.layout === "table" || this.config.layout === "grid"
+      ? this.config.layout
+      : this.defaultLayout;
+  }
+}
+
 class Settings {
   savedFilters: SavedFilters;
   fetchConfig: FetchConfig;
@@ -264,6 +307,7 @@ class Settings {
   filterBarConfig: FilterBarConfig;
   themeConfig: ThemeConfig;
   multiGridConfig: MultiGridConfig;
+  layoutConfig: LayoutConfig;
 
   constructor(defaults: UIDefaults | null | undefined) {
     let defaultSettings: UIDefaults;
@@ -279,6 +323,7 @@ class Settings {
         CollapseGroups: "collapsedOnMobile",
         MultiGridLabel: "",
         MultiGridSortReverse: false,
+        Layout: "grid",
       };
     } else {
       defaultSettings = defaults;
@@ -305,6 +350,9 @@ class Settings {
     this.multiGridConfig = new MultiGridConfig(
       defaultSettings.MultiGridLabel,
       defaultSettings.MultiGridSortReverse,
+    );
+    this.layoutConfig = new LayoutConfig(
+      defaultSettings.Layout === "table" ? "table" : "grid",
     );
   }
 }

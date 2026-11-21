@@ -154,6 +154,6 @@ describe("<SilenceModalContent /> Browser", () => {
   it("renders silence browser when tab is set to Browser", () => {
     silenceFormStore.tab.setTab("browser");
     const { container } = renderSilenceModalContent();
-    expect(container.innerHTML).toMatch(/Sort order/);
+    expect(container.innerHTML).toMatch(/aria-label="Sort order"/);
   });
 });

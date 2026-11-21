@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/prymitive/karma/internal/alertmanager"
 )
@@ -13,7 +15,23 @@ const (
 	maxTries = 2
 )
 
+var (
+	// pullMu serialises pulls, so a manual refresh can't overlap the ticker
+	pullMu sync.Mutex
+	// lastPullStart is when the most recent pull started, guarded by pullMu
+	lastPullStart time.Time
+)
+
 func pullFromAlertmanager() {
+	pullMu.Lock()
+	defer pullMu.Unlock()
+	pullLocked()
+}
+
+// pullLocked must be called with pullMu held
+func pullLocked() {
+	lastPullStart = time.Now()
+
 	// always flush cache once we're done
 	defer apiCache.Purge()
 
@@ -54,4 +72,19 @@ func Tick() {
 	for range ticker.C {
 		pullFromAlertmanager()
 	}
+}
+
+// refresh pulls from all Alertmanagers right now and returns once done.
+// A pull that started before the request arrived may have missed whatever
+// change the caller is waiting for, so it's never reused. Requests that queue
+// up behind a running pull share the next one.
+func refresh(w http.ResponseWriter, _ *http.Request) {
+	arrived := time.Now()
+	pullMu.Lock()
+	if !lastPullStart.After(arrived) {
+		pullLocked()
+	}
+	pullMu.Unlock()
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write([]byte("{}\n"))
 }

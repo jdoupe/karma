@@ -159,8 +159,8 @@ const Fetcher: FC<{
     }
   };
 
-  const callFetch = () => {
-    if (alertStore.status.paused) return;
+  const callFetch = (force = false) => {
+    if (alertStore.status.paused && !force) return;
 
     const sortSettings = getSortSettings();
     alertStore.fetchWithThrottle(
@@ -210,6 +210,15 @@ const Fetcher: FC<{
           callFetch();
         },
         { fireImmediately: true },
+      ),
+    [],
+  );
+
+  useEffect(
+    () =>
+      reaction(
+        () => alertStore.status.refreshRequests,
+        () => callFetch(true),
       ),
     [],
   );

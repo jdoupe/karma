@@ -12,6 +12,12 @@
 
 - Silence ACL rules can now be scoped to specific operations (`create`, `edit`,
   `delete`), see [ACLs.md](docs/ACLs.md) - #7170.
+- Table layout showing one line per alert, set the default with `ui.layout`
+  (`grid` or `table`), users can override it in the configuration modal.
+- Manual refresh button and `POST /refresh` endpoint, the UI also refreshes
+  right after silences are created or deleted.
+- Silence browser can group duplicate silences that exist on multiple clusters
+  and edit them together.
 
 ## v0.133
 

@@ -155,6 +155,7 @@ func SetupFlags(f *pflag.FlagSet) {
 	f.Int("ui.minimalGroupWidth", 420, "Minimal width for each alert group on the grid")
 	f.Int("ui.alertsPerGroup", 5, "Default number of alerts to show for each alert group")
 	f.String("ui.collapseGroups", "collapsedOnMobile", "Default state for alert groups")
+	f.String("ui.layout", "grid", "Default alert layout, 'table' (one line per alert) or 'grid' (alert group cards)")
 }
 
 func validateConfigFile(path string) error {
@@ -254,6 +255,8 @@ func readEnvVariables(k *koanf.Koanf) {
 				return "ui.minimalGroupWidth", v
 			case "UI_ALERTSPERGROUP":
 				return "ui.alertsPerGroup", v
+			case "UI_LAYOUT":
+				return "ui.layout", v
 			case "UI_COLLAPSEGROUPS":
 				return "ui.collapseGroups", v
 			default:
@@ -443,6 +446,10 @@ func (config *configSchema) Read(flags *pflag.FlagSet) (string, error) {
 
 	if !slices.Contains([]string{"expanded", "collapsed", "collapsedOnMobile"}, config.UI.CollapseGroups) {
 		return "", fmt.Errorf("invalid ui.collapseGroups value '%s', allowed options: expanded, collapsed, collapsedOnMobile", config.UI.CollapseGroups)
+	}
+
+	if !slices.Contains([]string{"table", "grid"}, config.UI.Layout) {
+		return "", fmt.Errorf("invalid ui.layout value '%s', allowed options: table, grid", config.UI.Layout)
 	}
 
 	if !slices.Contains([]string{"light", "dark", "auto"}, config.UI.Theme) {

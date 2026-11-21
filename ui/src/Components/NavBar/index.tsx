@@ -23,6 +23,7 @@ import SilenceModal from "Components/SilenceModal";
 import AppToasts from "Components/Toast/AppToasts";
 import { ThemeContext } from "Components/Theme";
 import { Fetcher } from "Components/Fetcher";
+import { RefreshButton } from "Components/RefreshButton";
 import { FilterInput } from "./FilterInput";
 import { MobileIdleTimeout, DesktopIdleTimeout } from "./timeouts";
 
@@ -120,6 +121,7 @@ const NavBar: FC<{
         alertStore.data.upstreams.instances.length === 0 ? null : (
           <ul className="navbar-nav flex-wrap flex-shrink-1 ms-1">
             <AppToasts alertStore={alertStore} />
+            <RefreshButton alertStore={alertStore} />
             <SilenceModal
               alertStore={alertStore}
               silenceFormStore={silenceFormStore}

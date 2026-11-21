@@ -287,6 +287,7 @@ level=INFO msg="  alertsPerGroup: 5"
 level=INFO msg="  collapseGroups: collapsedOnMobile"
 level=INFO msg="  multiGridLabel: severity"
 level=INFO msg="  multiGridSortReverse: true"
+level=INFO msg="  layout: grid"
 level=INFO msg="Configured Alertmanager source" name=ha1 cluster=HA uri=http://127.0.0.1:9093 proxy=true readonly=false
 level=INFO msg="Configured Alertmanager source" name=ha2 cluster=HA uri=http://127.0.0.1:9094 proxy=false readonly=true
 level=INFO msg="Configured Alertmanager source" name=local cluster=local uri=http://foo:xxx@127.0.0.1:9095 proxy=true readonly=false

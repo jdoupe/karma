@@ -1,5 +1,7 @@
 export type ThemeT = "light" | "dark" | "auto";
 
+export type LayoutT = "table" | "grid";
+
 type CollapseGroupsT = "expanded" | "collapsed" | "collapsedOnMobile";
 
 export interface UIDefaults {
@@ -13,4 +15,6 @@ export interface UIDefaults {
   CollapseGroups: CollapseGroupsT;
   MultiGridLabel: string;
   MultiGridSortReverse: boolean;
+  // missing when talking to a backend that predates the option
+  Layout?: LayoutT;
 }

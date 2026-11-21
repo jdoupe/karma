@@ -1,0 +1,47 @@
+.components-alert-table {
+  padding-top: 3.5rem;
+
+  table {
+    table-layout: auto;
+    --bs-table-color: var(--bs-body-color);
+    --bs-table-bg: transparent;
+    --bs-table-hover-color: var(--bs-body-color);
+  }
+
+  th {
+    white-space: nowrap;
+    padding-right: 1rem;
+  }
+
+  th.sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .alert-row {
+    cursor: pointer;
+    border-left: 4px solid var(--bs-secondary);
+    &-active {
+      border-left-color: var(--bs-danger);
+    }
+    &-suppressed {
+      border-left-color: var(--bs-success);
+      opacity: 0.75;
+    }
+    &.expanded {
+      background: var(--bs-tertiary-bg);
+    }
+  }
+
+  .col-chevron {
+    width: 1.5rem;
+    font-size: 0.7rem;
+  }
+  .col-summary {
+    width: 100%;
+    max-width: 0;
+  }
+  .alert-detail > td {
+    padding: 0.5rem 0.5rem 0.75rem;
+  }
+}

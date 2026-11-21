@@ -14,6 +14,7 @@ import type { AlertStore } from "Stores/AlertStore";
 import type { SilenceFormStore } from "Stores/SilenceFormStore";
 import { FormatQuery, QueryOperators, StaticLabels } from "Common/Query";
 import { useFetchDelete } from "Hooks/useFetchDelete";
+import { refreshBackend } from "Components/RefreshButton";
 import { Modal } from "Components/Modal";
 import { PaginatedAlertList } from "Components/PaginatedAlertList";
 
@@ -75,6 +76,13 @@ const DeleteResult: FC<{
     deleteFetchOptions,
     [currentTime],
   );
+
+  // once the request is finished pull the new state from Alertmanager
+  useEffect(() => {
+    if (!isDeleting) {
+      refreshBackend(alertStore).catch(() => undefined);
+    }
+  }, [isDeleting, alertStore]);
 
   return (
     <>

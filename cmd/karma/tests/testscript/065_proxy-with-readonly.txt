@@ -136,6 +136,7 @@ level=INFO msg="  alertsPerGroup: 5"
 level=INFO msg="  collapseGroups: collapsedOnMobile"
 level=INFO msg="  multiGridLabel: \"\""
 level=INFO msg="  multiGridSortReverse: false"
+level=INFO msg="  layout: grid"
 level=ERROR msg="Execution failed" error="failed to create Alertmanager 'failed' with URI 'http://127.0.0.1': cannot use proxy and readonly mode at the same time"
 -- karma.yaml --
 alertmanager:

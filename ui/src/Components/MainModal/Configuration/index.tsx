@@ -10,6 +10,7 @@ import { AlertGroupSortConfiguration } from "./AlertGroupSortConfiguration";
 import { AlertGroupCollapseConfiguration } from "./AlertGroupCollapseConfiguration";
 import { AlertGroupTitleBarColor } from "./AlertGroupTitleBarColor";
 import { ThemeConfiguration } from "./ThemeConfiguration";
+import { LayoutConfiguration } from "./LayoutConfiguration";
 import { MultiGridConfiguration } from "./MultiGridConfiguration";
 import { AnimationsConfiguration } from "./AnimationsConfiguration";
 
@@ -26,6 +27,11 @@ const Configuration: FC<{
     <AccordionItem
       text="Filter bar configuration"
       content={<FilterBarConfiguration settingsStore={settingsStore} />}
+      defaultIsOpen={defaultIsOpen}
+    />
+    <AccordionItem
+      text="Layout"
+      content={<LayoutConfiguration settingsStore={settingsStore} />}
       defaultIsOpen={defaultIsOpen}
     />
     <AccordionItem

@@ -7,6 +7,7 @@ import type { Settings } from "Stores/Settings";
 import type { SilenceFormStore } from "Stores/SilenceFormStore";
 import { ThemeContext } from "Components/Theme";
 import AlertGrid from "./AlertGrid";
+import AlertTable from "./AlertTable";
 import { FatalError } from "./FatalError";
 import { UpgradeNeeded } from "./UpgradeNeeded";
 import { ReloadNeeded } from "./ReloadNeeded";
@@ -74,8 +75,14 @@ const Grid: FC<{
     case "empty":
       return <EmptyGrid />;
     case "grid":
-      return (
+      return settingsStore.layoutConfig.layout === "grid" ? (
         <AlertGrid
+          alertStore={alertStore}
+          settingsStore={settingsStore}
+          silenceFormStore={silenceFormStore}
+        />
+      ) : (
+        <AlertTable
           alertStore={alertStore}
           settingsStore={settingsStore}
           silenceFormStore={silenceFormStore}
